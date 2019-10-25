@@ -15,6 +15,7 @@ import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.provider.Settings;
 
+import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
@@ -22,11 +23,12 @@ import com.facebook.react.bridge.ReactMethod;
 
 import java.util.List;
 
-public class RNWifiModule extends ReactContextBaseJavaModule {
+public class RNWifiModule extends ReactContextBaseJavaModule implements LifecycleEventListener {
 
 	private WifiManager wifiManager;
 	private ConnectivityManager connectivityManager;
 	private ReactApplicationContext context;
+	private ConnectivityManager.NetworkCallback networkCallback;
 
 	RNWifiModule(ReactApplicationContext reactContext) {
 		super(reactContext);
@@ -68,34 +70,39 @@ public class RNWifiModule extends ReactContextBaseJavaModule {
 
 				if (!(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) || canWriteFlag) {
 
-					final ConnectivityManager manager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-					NetworkRequest.Builder builder;
-					builder = new NetworkRequest.Builder();
+					NetworkRequest.Builder builder = new NetworkRequest.Builder();
 					builder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
 
-					manager.requestNetwork(builder.build(), new ConnectivityManager.NetworkCallback() {
+					if(networkCallback != null)
+						connectivityManager.unregisterNetworkCallback(networkCallback);
+
+					networkCallback = new ConnectivityManager.NetworkCallback() {
 						@Override
 						public void onAvailable(Network network) {
-
+							boolean bound = false;
 							if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-								manager.bindProcessToNetwork(null);
+								connectivityManager.bindProcessToNetwork(null);
 								if (ssid == null || getSSID().equals(ssid))
-									manager.bindProcessToNetwork(network);
+									bound = connectivityManager.bindProcessToNetwork(network);
 							} else {
 								// This method was deprecated in API level 23
 								ConnectivityManager.setProcessDefaultNetwork(null);
 								if (ssid == null || getSSID().equals(ssid))
-									ConnectivityManager.setProcessDefaultNetwork(network);
+									bound = ConnectivityManager.setProcessDefaultNetwork(network);
 							}
-							manager.unregisterNetworkCallback(this);
+							if(bound) {
+								connectivityManager.unregisterNetworkCallback(this);
+								networkCallback = null;
+							}
 						}
-					});
+					};
+
+					connectivityManager.requestNetwork(builder.build(), networkCallback);
 				}
 			}
 		} else {
 			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-				ConnectivityManager manager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-				manager.bindProcessToNetwork(null);
+				connectivityManager.bindProcessToNetwork(null);
 			} else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
 				ConnectivityManager.setProcessDefaultNetwork(null);
 			}
@@ -176,17 +183,13 @@ public class RNWifiModule extends ReactContextBaseJavaModule {
 
 		// This value should be wrapped in double quotes, so we need to unwrap it.
 		String ssid = info.getSSID();
+		NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
 
-		if (ssid == null || ssid.equals("<unknown ssid>")) {
-			NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
-			if (networkInfo != null && networkInfo.isConnected()) {
-				ssid = networkInfo.getExtraInfo();
-			}
-		}
+		if ((ssid == null || ssid.equals("<unknown ssid>")) && networkInfo != null)
+			ssid = networkInfo.getExtraInfo();
 
-		if (ssid != null && ssid.startsWith("\"") && ssid.endsWith("\"")) {
+		if (ssid != null && ssid.startsWith("\"") && ssid.endsWith("\""))
 			ssid = ssid.substring(1, ssid.length() - 1);
-		}
 
 		if(info.getSupplicantState() == SupplicantState.COMPLETED)
 			return ssid;
@@ -250,4 +253,20 @@ public class RNWifiModule extends ReactContextBaseJavaModule {
 		promise.resolve(true);
 	}
 
+	@Override
+	public void onHostResume() {
+
+	}
+
+	@Override
+	public void onHostPause() {
+
+	}
+
+	@Override
+	public void onHostDestroy() {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && networkCallback != null) {
+			connectivityManager.unregisterNetworkCallback(networkCallback);
+		}
+	}
 }
