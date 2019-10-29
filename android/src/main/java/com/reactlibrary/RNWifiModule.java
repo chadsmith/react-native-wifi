@@ -191,7 +191,7 @@ public class RNWifiModule extends ReactContextBaseJavaModule implements Lifecycl
 		if (ssid != null && ssid.startsWith("\"") && ssid.endsWith("\""))
 			ssid = ssid.substring(1, ssid.length() - 1);
 
-		if(info.getSupplicantState() == SupplicantState.COMPLETED)
+		if(ssid != null && info.getSupplicantState() == SupplicantState.COMPLETED)
 			return ssid;
 		return "";
 	}
