@@ -5,9 +5,8 @@
 // - Make sure the NetworkExtension framework is linked to the target
 
 #import <Foundation/Foundation.h>
-#import <RCTBridgeModule.h>
+#import <React/RCTBridgeModule.h>
 
 @interface WifiManager : NSObject <RCTBridgeModule>
 
 @end
-
