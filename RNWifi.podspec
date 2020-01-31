@@ -2,17 +2,17 @@
 Pod::Spec.new do |s|
   s.name         = "RNWifi"
   s.version      = "1.0.0"
-  s.summary      = "RNWifi"
+  s.summary      = "react-native-wifi"
   s.description  = <<-DESC
                   RNWifi
                    DESC
-  s.homepage     = ""
+  s.homepage     = "https://github.com/chadsmith/react-native-wifi"
   s.license      = "MIT"
   # s.license      = { :type => "MIT", :file => "FILE_LICENSE" }
-  s.author             = { "author" => "author@domain.cn" }
+  s.author             = { "author" => "chad@developer.email" }
   s.platform     = :ios, "7.0"
-  s.source       = { :git => "https://github.com/author/RNWifi.git", :tag => "master" }
-  s.source_files  = "RNWifi/**/*.{h,m}"
+  s.source       = { :git => "https://github.com/chadsmith/react-native-wifi.git", :tag => "master" }
+  s.source_files  = "ios/**/*.{h,m}"
   s.requires_arc = true
 
 
@@ -20,5 +20,3 @@ Pod::Spec.new do |s|
   #s.dependency "others"
 
 end
-
-  
